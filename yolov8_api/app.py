@@ -7,22 +7,25 @@ from ultralytics import YOLO
 from collections import defaultdict
 from datetime import datetime
 from flask_cors import CORS
+from flask import render_template
 
 app = Flask(__name__)
-
+CORS(app) 
 # Load YOLOv8 model
-MODEL_PATH = "best.pt"
+MODEL_PATH = "bestt.pt"
 model = YOLO(MODEL_PATH)
 
 # Ensure output directory exists
-OUTPUT_DIR = "output"
+OUTPUT_DIR = "static/output"
+INPUT_DIR = "static/input"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
+os.makedirs(INPUT_DIR, exist_ok=True)
 
 # Log file
 LOG_FILE = "logs.xlsx"
 
 # Class categories
-CLEANLINESS_CLASSES = {"minor", "major", "supermajor", "super_major"}
+CLEANLINESS_CLASSES = {"minor", "major", "supermajor"}
 NEATNESS_CLASSES = {"neatness"}
 
 
@@ -48,10 +51,13 @@ def log_to_excel(timestamp, image_name, cleanliness, neatness, total):
     df_combined.to_excel(LOG_FILE, index=False)
 
 
-@app.route('/')
-def home():
-    return jsonify({"message": "YOLOv8 Inference API is running!"})
+# @app.route('/')
+# def home():
+#     return jsonify({"message": "YOLOv8 Inference API is running!"})
 
+@app.route("/")
+def index():
+    return render_template("index.html") 
 
 @app.route('/predict', methods=['POST'])
 def predict():
@@ -69,13 +75,18 @@ def predict():
         if img is None:
             return jsonify({"error": "Invalid image"}), 400
 
-        filename = os.path.basename(file.filename)
+        # filename = os.path.basename(file.filename)
+        filename = "result.jpg" 
 
         # Run inference
         results = model(img)
         annotated_img = results[0].plot()
 
         # Save annotated image
+        input_filename = "input.jpg"
+        input_path = os.path.join(INPUT_DIR, input_filename)
+        cv2.imwrite(input_path, img)
+
         output_path = os.path.join(OUTPUT_DIR, filename)
         cv2.imwrite(output_path, annotated_img)
 
@@ -111,4 +122,4 @@ def predict():
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000,debug=True)
+    app.run(host='0.0.0.0', port=5001,debug=True)
